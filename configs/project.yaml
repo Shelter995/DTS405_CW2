@@ -1,0 +1,60 @@
+project:
+  name: DTS405_CW2_Basketball_BEV
+  seed: 42
+
+paths:
+  # Update this path to the remote Windows dataset location before running.
+  raw_data_root: "D:/path/to/basketball_dataset"
+  processed_yolo_root: "D:/Projects/DTS405_CW2/outputs/basketball_yolo"
+  outputs_root: "D:/Projects/DTS405_CW2/outputs"
+  runs_root: "D:/Projects/DTS405_CW2/outputs/runs"
+  homography_config: "D:/Projects/DTS405_CW2/configs/homography_camera_b.json"
+
+data:
+  # The provided folder name may be "trian" rather than "train".
+  train_dir_name: "trian"
+  test_dir_name: "test"
+  train_clip: "clip1"
+  test_clips:
+    - "clip2"
+    - "clip3"
+    - "clip4"
+  train_frames: 400
+  val_frames: 100
+  image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+
+classes:
+  0: "player"
+  1: "ball"
+  2: "referee"
+  3: "others"
+
+model:
+  base_model: "yolov8n.pt"
+  epochs: 50
+  imgsz: 640
+  batch: 16
+  patience: 20
+  conf_threshold: 0.25
+  tracker: "bytetrack.yaml"
+  disable_augmentation: true
+  run_name: "yolov8n_noaug"
+
+visualization:
+  fps: 25
+  frame_limit_debug: 150
+  overlay_position: "top_right"
+  overlay_margin: 20
+  minimap_width: 470
+  minimap_height: 250
+  court_margin: 12
+  trail_length: 20
+  ball_missing_tolerance: 5
+  colors_bgr:
+    player: [255, 90, 20]
+    ball: [40, 40, 255]
+    referee: [0, 190, 255]
+    others: [230, 230, 230]

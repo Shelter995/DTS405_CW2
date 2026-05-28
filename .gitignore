@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Project outputs and large generated artifacts
+outputs/
+runs/
+*.pt
+*.onnx
+*.engine
+*.mp4
+*.avi
+*.mov
+
+# Local data
+data/
+dataset/
+basketball_yolo/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
