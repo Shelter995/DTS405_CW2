@@ -9,6 +9,7 @@ paths:
   outputs_root: "D:/Projects/DTS405_CW2/outputs"
   runs_root: "D:/Projects/DTS405_CW2/outputs/runs"
   homography_config: "D:/Projects/DTS405_CW2/configs/homography_camera_b.json"
+  demo_video_path: "D:/Projects/DTS405_CW2/data/Demo Video.mp4"
 
 data:
   # The provided folder name may be "trian" rather than "train".
@@ -48,8 +49,8 @@ visualization:
   frame_limit_debug: 150
   overlay_position: "top_right"
   overlay_margin: 20
-  minimap_width: 470
-  minimap_height: 250
+  minimap_width: 620
+  minimap_height: 330
   court_margin: 12
   trail_length: 20
   ball_missing_tolerance: 5

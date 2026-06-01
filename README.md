@@ -1,6 +1,6 @@
 # DTS405 Coursework 2: Basketball Detection and BEV Mini-map
 
-This project implements a basketball broadcast vision pipeline for DTS405 Coursework 2. It trains a YOLO detector on the provided basketball clips, projects player positions to a 2D bird's-eye-view court template using a manually calibrated homography, and renders a demo video with detection boxes and a top-right mini-map overlay.
+This project implements a basketball broadcast vision pipeline for DTS405 Coursework 2. It trains a YOLO detector on the provided basketball clips, projects detections to a 2D bird's-eye-view court template using a manually calibrated homography, and renders `data/Demo Video.mp4` with detection boxes, tracking, and a top-right mini-map overlay.
 
 The implementation is notebook-driven and configuration-driven. There is no command-line argument interface.
 
@@ -12,11 +12,12 @@ The implementation is notebook-driven and configuration-driven. There is no comm
   - `1 ball`
   - `2 referee`
   - `3 others`
-- The mini-map projects only:
+- The mini-map projects:
   - players, using bounding-box bottom-centre foot-points
+  - referees, using bounding-box bottom-centre foot-points
   - the ball, using bounding-box centre as an approximate image point
-- `referee` and `others` are drawn on the main video frame but are not projected to the mini-map.
-- Camera B, the `clip2` / `clip3` viewpoint, is used for the BEV demo.
+- `others` is drawn on the main video frame but is not projected to the mini-map.
+- `data/Demo Video.mp4` is used for the final BEV demo.
 - The system produces a 2D BEV mini-map, not a full 3D reconstruction.
 
 ## Repository Structure
@@ -223,13 +224,13 @@ Metrics JSON files are saved under `outputs/metrics/`.
 
 Demo rendering is implemented in `src/video.py`.
 
-The main demo uses `clip2` and renders:
+The main demo uses `data/Demo Video.mp4` and renders:
 
 - all four detection classes on the original broadcast frame
-- player tracking IDs using lightweight tracking
-- compressed continuous display IDs for players
-- a top-right BEV mini-map overlay
-- player short trajectories over roughly the last 20 frames
+- player and referee tracking IDs using lightweight tracking
+- compressed continuous display IDs for players and referees
+- a larger top-right BEV mini-map overlay
+- player and referee short trajectories over roughly the last 20 frames
 - ball projection with short missing-frame tolerance
 
 Outputs are saved under:

@@ -127,41 +127,56 @@ def draw_court_template(
 def draw_minimap_state(
     template: np.ndarray,
     players: list[dict[str, Any]],
-    tracks: dict[int, list[tuple[float, float]]],
+    referees: list[dict[str, Any]],
+    player_tracks: dict[int, list[tuple[float, float]]],
+    referee_tracks: dict[int, list[tuple[float, float]]],
     ball: tuple[float, float] | None = None,
     ball_alpha: float = 1.0,
     colors_bgr: dict[str, tuple[int, int, int]] | None = None,
 ) -> np.ndarray:
-    """Draw current player locations, short tracks, and the ball on a court template."""
+    """Draw players, referees, their short tracks, and the ball on a court template."""
     colors = colors_bgr or {
         "player": (255, 90, 20),
         "ball": (40, 40, 255),
+        "referee": (0, 190, 255),
     }
     canvas = template.copy()
     trail_layer = canvas.copy()
 
-    for display_id, points in tracks.items():
-        if len(points) < 2:
-            continue
-        int_points = [(int(round(x)), int(round(y))) for x, y in points]
-        for start, end in zip(int_points[:-1], int_points[1:]):
-            cv2.line(trail_layer, start, end, colors["player"], 2, cv2.LINE_AA)
-        if int_points:
-            cv2.circle(trail_layer, int_points[-1], 2, colors["player"], -1, cv2.LINE_AA)
+    def draw_tracks(tracks: dict[int, list[tuple[float, float]]], color: tuple[int, int, int]) -> None:
+        for points in tracks.values():
+            if len(points) < 2:
+                continue
+            int_points = [(int(round(x)), int(round(y))) for x, y in points]
+            for start, end in zip(int_points[:-1], int_points[1:]):
+                cv2.line(trail_layer, start, end, color, 2, cv2.LINE_AA)
+            if int_points:
+                cv2.circle(trail_layer, int_points[-1], 2, color, -1, cv2.LINE_AA)
+
+    draw_tracks(player_tracks, colors["player"])
+    draw_tracks(referee_tracks, colors["referee"])
 
     cv2.addWeighted(trail_layer, 0.35, canvas, 0.65, 0, canvas)
 
-    for player in players:
-        point = player["point"]
-        display_id = int(player["display_id"])
-        centre = (int(round(point[0])), int(round(point[1])))
-        cv2.circle(canvas, centre, 11, colors["player"], -1, cv2.LINE_AA)
-        cv2.circle(canvas, centre, 12, (0, 0, 0), 2, cv2.LINE_AA)
-        label = str(display_id)
-        text_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 2)
-        text_x = centre[0] - text_size[0] // 2
-        text_y = centre[1] + text_size[1] // 2
-        cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
+    def draw_people(
+        people: list[dict[str, Any]],
+        color: tuple[int, int, int],
+        prefix: str,
+    ) -> None:
+        for person in people:
+            point = person["point"]
+            display_id = int(person["display_id"])
+            centre = (int(round(point[0])), int(round(point[1])))
+            cv2.circle(canvas, centre, 11, color, -1, cv2.LINE_AA)
+            cv2.circle(canvas, centre, 12, (0, 0, 0), 2, cv2.LINE_AA)
+            label = f"{prefix}{display_id}"
+            text_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 2)
+            text_x = centre[0] - text_size[0] // 2
+            text_y = centre[1] + text_size[1] // 2
+            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2, cv2.LINE_AA)
+
+    draw_people(players, colors["player"], "P")
+    draw_people(referees, colors["referee"], "R")
 
     if ball is not None:
         ball_layer = canvas.copy()

@@ -50,8 +50,8 @@ def draw_detections(
 
         cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 2)
         label = class_name
-        if class_name == "player" and detection.get("display_id") is not None:
-            label = f"player {detection['display_id']}"
+        if detection.get("display_id") is not None:
+            label = f"{class_name} {detection['display_id']}"
         if confidence is not None:
             label = f"{label} {float(confidence):.2f}"
         draw_text_label(canvas, label, (x1, y1 - 4), color)
