@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 from .config import class_names, resolve_path
-from .homography import project_points
+from .homography import load_homography_config, project_points
 from .minimap import draw_court_template, draw_minimap_state, point_inside_template
 from .visualization import draw_detections, overlay_pip, tuple_color
 
@@ -138,12 +138,10 @@ def render_demo_video(
         key: tuple_color(value)
         for key, value in config["visualization"]["colors_bgr"].items()
     }
+    homography_config = load_homography_config(config["paths"]["homography_config"])
     minimap_template = draw_court_template(
-        template_size=(
-            int(config["visualization"]["minimap_width"] * 2),
-            int(config["visualization"]["minimap_height"] * 2),
-        ),
-        margin=int(config["visualization"]["court_margin"] * 2),
+        template_size=tuple(int(value) for value in homography_config["template_size"]),
+        margin=int(homography_config["court_margin_px"]),
     )
 
     model = YOLO(str(model_path))

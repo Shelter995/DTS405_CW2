@@ -168,14 +168,14 @@ def draw_minimap_state(
             point = person["point"]
             display_id = int(person["display_id"])
             centre = (int(round(point[0])), int(round(point[1])))
-            cv2.circle(canvas, centre, 15, color, -1, cv2.LINE_AA)
-            cv2.circle(canvas, centre, 16, (0, 0, 0), 2, cv2.LINE_AA)
+            cv2.circle(canvas, centre, 18, color, -1, cv2.LINE_AA)
+            cv2.circle(canvas, centre, 19, (0, 0, 0), 2, cv2.LINE_AA)
             label = f"{prefix}{display_id}"
-            font_scale = 0.62
-            thickness = 2
+            font_scale = 0.9
+            thickness = 3
             text_size, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-            text_x = centre[0] + 18
-            text_y = centre[1] - 18
+            text_x = centre[0] + 24
+            text_y = centre[1] - 24
             text_x = min(max(2, text_x), canvas.shape[1] - text_size[0] - 4)
             text_y = min(max(text_size[1] + 4, text_y), canvas.shape[0] - baseline - 4)
             cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)

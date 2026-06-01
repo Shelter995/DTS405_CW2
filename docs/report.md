@@ -198,7 +198,9 @@ H = H / H[2, 2]
 
 ### 4.4 Mini-map Rendering
 
-目标模板采用标准横向 full-court layout，物理比例为 `28m x 15m`，再映射到 mini-map pixel canvas。最终视频中，小地图显示：
+目标模板采用标准横向 full-court layout，物理比例为 `28m x 15m`，再映射到 mini-map pixel canvas。实现中将 BEV projection canvas 与 video overlay display size 分离：homography 输出始终落在 `homography_camera_b.json` 中定义的固定模板坐标系上，右上角小地图只在最终叠加前做 resize。这样可以避免因为放大显示尺寸而改变投影坐标系。
+
+最终视频中，小地图显示：
 
 - player: enlarged blue circles with black external ID labels `P1`, `P2`, ...；
 - referee: enlarged yellow/orange circles with black external ID labels `R1`, `R2`, ...；
@@ -237,6 +239,7 @@ for each frame:
     else:
         keep previous ball point for a few frames with fading
 
+    resize mini-map for display
     overlay enlarged mini-map at top-right
     write combined frame to output video
 ```
