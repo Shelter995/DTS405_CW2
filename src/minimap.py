@@ -178,8 +178,7 @@ def draw_minimap_state(
             text_y = centre[1] - 18
             text_x = min(max(2, text_x), canvas.shape[1] - text_size[0] - 4)
             text_y = min(max(text_size[1] + 4, text_y), canvas.shape[0] - baseline - 4)
-            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness + 2, cv2.LINE_AA)
-            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness, cv2.LINE_AA)
+            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
     draw_people(players, colors["player"], "P")
     draw_people(referees, colors["referee"], "R")
