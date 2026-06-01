@@ -1,11 +1,11 @@
 {
   "camera_id": "camera_B",
-  "source_clip": "clip2",
+  "source_clip": "Demo Video.mp4",
   "reference_frame": "",
   "template_size": [940, 500],
   "court_size_m": [28.0, 15.0],
   "court_margin_px": 24,
-  "notes": "Fill image_points_px with manually selected points from the clip2 reference frame. Fill template_points_m with the corresponding standard-court coordinates in metres.",
+  "notes": "Fill image_points_px with manually selected points from the first frame of data/Demo Video.mp4. Fill template_points_m with the corresponding standard-court coordinates in metres.",
   "image_points_px": [],
   "template_points_m": []
 }

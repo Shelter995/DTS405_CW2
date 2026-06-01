@@ -1,11 +1,11 @@
-"""
-Manually select four image points for Camera B homography calibration.
+"""Manually select four image points from the first frame of Demo Video.mp4.
 
 Usage:
-1. Set REFERENCE_FRAME_PATH below to a clear frame from clip2.
+1. Make sure data/Demo Video.mp4 exists.
 2. Run this script.
-3. Left-click four court reference points in the OpenCV window.
-4. Press Enter to confirm, or Esc to cancel.
+3. The script saves the first video frame to outputs/calibration.
+4. Left-click four court reference points in the OpenCV window.
+5. Press Enter to confirm, or Esc to cancel.
 
 The selected points are printed and, by default, written into
 configs/homography_camera_b.json as image_points_px.
@@ -14,18 +14,22 @@ configs/homography_camera_b.json as image_points_px.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-from .homography import draw_reference_points, select_image_points
+import cv2
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-# Edit this path before running.
-REFERENCE_FRAME_PATH = Path(r"D:\path\to\clip2\images\0001.jpg")
+from src.homography import draw_reference_points, select_image_points
 
+DEMO_VIDEO_PATH = PROJECT_ROOT / "data" / "Demo Video.mp4"
 HOMOGRAPHY_CONFIG_PATH = PROJECT_ROOT / "configs" / "homography_camera_b.json"
-ANNOTATED_OUTPUT_PATH = PROJECT_ROOT / "outputs" / "calibration" / "camera_b_reference_points.jpg"
+REFERENCE_FRAME_PATH = PROJECT_ROOT / "outputs" / "calibration" / "demo_video_first_frame.jpg"
+ANNOTATED_OUTPUT_PATH = PROJECT_ROOT / "outputs" / "calibration" / "demo_video_reference_points.jpg"
 
 MAX_POINTS = 4
 SAVE_TO_CONFIG = True
@@ -43,13 +47,27 @@ def save_json(path: Path, payload: dict) -> None:
         json.dump(payload, file, indent=2)
 
 
+def extract_first_frame(video_path: Path, output_path: Path) -> Path:
+    if not video_path.exists():
+        raise FileNotFoundError(f"Demo video does not exist: {video_path}")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    capture = cv2.VideoCapture(str(video_path))
+    if not capture.isOpened():
+        raise FileNotFoundError(f"Could not open demo video: {video_path}")
+
+    ok, frame = capture.read()
+    capture.release()
+    if not ok or frame is None:
+        raise RuntimeError(f"Could not read the first frame from: {video_path}")
+
+    cv2.imwrite(str(output_path), frame)
+    return output_path
+
+
 def main() -> None:
-    reference_frame = REFERENCE_FRAME_PATH.expanduser()
-    if not reference_frame.exists():
-        raise FileNotFoundError(
-            "REFERENCE_FRAME_PATH does not exist. Edit the path at the top of "
-            f"this script first: {reference_frame}"
-        )
+    reference_frame = extract_first_frame(DEMO_VIDEO_PATH, REFERENCE_FRAME_PATH)
+    print(f"Extracted first frame: {reference_frame}")
 
     points = select_image_points(reference_frame, max_points=MAX_POINTS)
     if len(points) != MAX_POINTS:
@@ -62,6 +80,7 @@ def main() -> None:
 
     if SAVE_TO_CONFIG:
         config = load_json(HOMOGRAPHY_CONFIG_PATH)
+        config["source_clip"] = "Demo Video.mp4"
         config["reference_frame"] = str(reference_frame)
         config["image_points_px"] = points
         save_json(HOMOGRAPHY_CONFIG_PATH, config)

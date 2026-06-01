@@ -140,21 +140,22 @@ def draw_minimap_state(
         "ball": (40, 40, 255),
         "referee": (0, 190, 255),
     }
+    trail_color = (0, 215, 255)
     canvas = template.copy()
     trail_layer = canvas.copy()
 
-    def draw_tracks(tracks: dict[int, list[tuple[float, float]]], color: tuple[int, int, int]) -> None:
+    def draw_tracks(tracks: dict[int, list[tuple[float, float]]]) -> None:
         for points in tracks.values():
             if len(points) < 2:
                 continue
             int_points = [(int(round(x)), int(round(y))) for x, y in points]
             for start, end in zip(int_points[:-1], int_points[1:]):
-                cv2.line(trail_layer, start, end, color, 2, cv2.LINE_AA)
+                cv2.line(trail_layer, start, end, trail_color, 3, cv2.LINE_AA)
             if int_points:
-                cv2.circle(trail_layer, int_points[-1], 2, color, -1, cv2.LINE_AA)
+                cv2.circle(trail_layer, int_points[-1], 3, trail_color, -1, cv2.LINE_AA)
 
-    draw_tracks(player_tracks, colors["player"])
-    draw_tracks(referee_tracks, colors["referee"])
+    draw_tracks(player_tracks)
+    draw_tracks(referee_tracks)
 
     cv2.addWeighted(trail_layer, 0.35, canvas, 0.65, 0, canvas)
 
@@ -167,13 +168,18 @@ def draw_minimap_state(
             point = person["point"]
             display_id = int(person["display_id"])
             centre = (int(round(point[0])), int(round(point[1])))
-            cv2.circle(canvas, centre, 11, color, -1, cv2.LINE_AA)
-            cv2.circle(canvas, centre, 12, (0, 0, 0), 2, cv2.LINE_AA)
+            cv2.circle(canvas, centre, 15, color, -1, cv2.LINE_AA)
+            cv2.circle(canvas, centre, 16, (0, 0, 0), 2, cv2.LINE_AA)
             label = f"{prefix}{display_id}"
-            text_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 2)
-            text_x = centre[0] - text_size[0] // 2
-            text_y = centre[1] + text_size[1] // 2
-            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 2, cv2.LINE_AA)
+            font_scale = 0.62
+            thickness = 2
+            text_size, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+            text_x = centre[0] + 18
+            text_y = centre[1] - 18
+            text_x = min(max(2, text_x), canvas.shape[1] - text_size[0] - 4)
+            text_y = min(max(text_size[1] + 4, text_y), canvas.shape[0] - baseline - 4)
+            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness + 2, cv2.LINE_AA)
+            cv2.putText(canvas, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness, cv2.LINE_AA)
 
     draw_people(players, colors["player"], "P")
     draw_people(referees, colors["referee"], "R")
