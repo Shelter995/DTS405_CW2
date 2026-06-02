@@ -1,0 +1,557 @@
+\documentclass[12pt,a4paper]{article}
+
+% ---------- Basic packages ----------
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{reference.bib}
+
+% ---------- Hyperref setup ----------
+\definecolor{DeepBlue}{HTML}{003A70}
+\definecolor{ModelOrange}{HTML}{F28E2B}
+\definecolor{ModelGreen}{HTML}{59A14F}
+\definecolor{ModelRed}{HTML}{E15759}
+\definecolor{PanelGray}{HTML}{F4F6F8}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=DeepBlue,
+    citecolor=DeepBlue,
+    urlcolor=DeepBlue,
+    pdftitle={Basketball Broadcast Detection and BEV Mini-map Report},
+    pdfauthor={Zijie Xue}
+}
+\urlstyle{same}
+
+% ---------- Line spacing and layout ----------
+\onehalfspacing
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{5pt}
+\emergencystretch=3em
+\sloppy
+\pagestyle{plain}
+
+% ---------- Pseudocode listing style ----------
+\definecolor{CodeGray}{HTML}{F2F2F2}
+\definecolor{KeywordPurple}{HTML}{5B2C83}
+\definecolor{CommentGreen}{HTML}{2E7D32}
+\lstdefinestyle{pseudocode}{
+    basicstyle=\ttfamily\footnotesize,
+    backgroundcolor=\color{CodeGray},
+    frame=single,
+    framerule=0pt,
+    xleftmargin=0.8em,
+    xrightmargin=0.8em,
+    framexleftmargin=0.8em,
+    framexrightmargin=0.8em,
+    breaklines=true,
+    columns=fullflexible,
+    keepspaces=true,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\scriptsize\color{gray},
+    numbersep=0.6em,
+    keywordstyle=\bfseries\color{KeywordPurple},
+    commentstyle=\itshape\color{CommentGreen},
+    morekeywords={FUNCTION,INPUT,OUTPUT,FOR,IF,ELSE,RETURN,TRAIN,FIT,TRANSFORM,PREDICT,UPDATE,SORT,COMPUTE,RETRIEVE,TOKENIZE,GENERATE,OPEN,DRAW,SAVE,NORMALISE,APPEND},
+    morecomment=[l]{//},
+    captionpos=b
+}
+
+% ---------- Section styling ----------
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection.}{0.5em}{}
+
+% ---------- Report metadata ----------
+\newcommand{\reporttitle}{Basketball Broadcast Detection and BEV Mini-map Report}
+\newcommand{\studentname}{Zijie Xue}
+\newcommand{\studentid}{2575576}
+\newcommand{\modulename}{DTS405 Computer Vision}
+\newcommand{\submissiondate}{June 2026}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    {\Large \textbf{Xi'an Jiaotong-Liverpool University}\par}
+    \vspace{0.4cm}
+    {\large School of AI and Advanced Computing\par}
+    \vspace{2cm}
+    {\huge \textbf{\reporttitle}\par}
+    \vspace{1.2cm}
+    {\Large Coursework Report\par}
+    \vspace{2cm}
+    \begin{tabular}{>{\bfseries}p{4cm}p{8.5cm}}
+        Module: & \modulename \\
+        Student: & \studentname\ (\studentid) \\
+        Submission Date: & \submissiondate \\
+    \end{tabular}
+    \vfill
+    {\large Academic Year 2025--2026\par}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+
+\section{Introduction}
+
+This experiment implemented a computer vision task for basketball video broadcast. First, I used YOLOv8n to conduct multi-object detection on the dynamic entities in the competition scene. Then I manually calibrate planar homography to map the image coordinates onto the 2D bird's eye-view (BEV) mini-map of the standard basketball court. In the end, I generate a demo video with a detection box, tracking ID and a real-time mini-map. YOLOv8 is cited as the Ultralytics software used in this implementation \cite{jocher2023ultralytics}, while the broader YOLO family follows the one-stage real-time detection idea introduced by Redmon et al. \cite{redmon2016yolo}.
+
+As required, the experiment completed an interpretable and reproducible 2D BEV tactical visualisation system. Based on the given dataset, the model training categories are \texttt{player}, \texttt{ball}, \texttt{referee}, and \texttt{others}. The assignment description mentioned hoop, but there was no independent hoop class in the data labels. Therefore, the experiment completed the quantitative detection and evaluation based on the actual labeled labels, and focused the tactical mini-map on the positions of player, referee and ball, and carried out visualization.
+
+Figure~\ref{fig:final_demo} shows one final demo frame with detection boxes and the enlarged BEV mini-map.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{outputs/screenshots/frame_0420.jpg}
+\caption{Final demo video placeholder: original broadcast video with detection boxes and enlarged top-right BEV mini-map.}
+\label{fig:final_demo}
+\end{figure}
+
+\section{Dataset and Pre-processing}
+
+The original data contains one training clip and three testing clips. Each clip contains \texttt{images/}, \texttt{labels/}, \texttt{classes.txt}, and \texttt{notes.json} internally. The format of YOLO label is \texttt{class\_id x\_center y\_center width height}.
+
+Among them, the coordinates are normalised image coordinates. The project organizes the original clips into a standard YOLO directory structure and retains the original category order to avoid label/config class mismatch.
+
+Table~\ref{tab:dataset_split} summarises the dataset split and the purpose of each part.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{Xr r X}
+\toprule
+\textbf{Split} & \textbf{Source} & \textbf{Frames} & \textbf{Purpose} \\
+\midrule
+Train & \texttt{clip1} first 400 frames & 400 & YOLO fine-tuning \\
+Validation & \texttt{clip1} last 100 frames & 100 & Model selection and validation metrics \\
+Test & \texttt{clip2 + clip3 + clip4} & 1500 approx. & Generalisation evaluation \\
+Demo & \texttt{data/Demo Video.mp4} & video frames & Final visualisation \\
+\bottomrule
+\end{tabularx}
+\caption{Dataset split and usage.}
+\label{tab:dataset_split}
+\end{table}
+
+In terms of Camera position relationships, \texttt{clip1/clip4} belongs to Camera A, and \texttt{clip2/clip3} belongs to Camera B. The final demo uses the \texttt{data/Demo Video.mp4} provided by the course. Homography calibration was completed directly based on the first frame of this video. I manually selected four visible court reference points located near the left and center lines of the court from the first frame and mapped them to the standard full-court basketball court template.
+
+Figure~\ref{fig:label_distribution} shows the training label distribution generated during the YOLO dataset preparation stage.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\linewidth]{outputs/runs/detect/yolov8n_noaug/labels.jpg}
+\caption{Training label distribution generated by Ultralytics.}
+\label{fig:label_distribution}
+\end{figure}
+
+
+\section{Object Detection Method}
+
+\subsection{YOLO Model Choice}
+
+This project uses \texttt{YOLOv8n} as the baseline detector. The reason for choosing the nano model is that it has a fast training speed, occupies less video memory, and is suitable for quickly completing the complete pipeline from detection to homography and then to mini-map rendering in coursework scenarios. The model is initialized from COCO pretrained weights \texttt{yolov8n.pt} and then fine-tuned on the four categories of the basketball dataset. COCO pretraining is relevant here because COCO was designed for object recognition in complex natural scenes with contextual object annotations \cite{lin2014coco}.
+
+The main training settings are listed in Table~\ref{tab:yolo_settings}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{0.92\linewidth}{Xr}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Base model & \texttt{yolov8n.pt} \\
+Epochs & 50 \\
+Image size & 640 \\
+Batch size & 16 \\
+Seed & 42 \\
+Confidence threshold for demo & 0.4, adjustable \\
+Augmentation & disabled/minimised for interpretable baseline \\
+Output weights & \texttt{outputs/runs/detect/yolov8n\_noaug/weights/best.pt} \\
+\bottomrule
+\end{tabularx}
+\caption{YOLOv8n training configuration.}
+\label{tab:yolo_settings}
+\end{table}
+
+During the training process, the detection head of YOLO will change from 80 classes of COCO to 4 classes of this dataset. The log \texttt{Transferred 319/355 items from pretrained weights} indicates that most of the parameters of backbone/neck were migrated, and finally detection head was relearned due to changes in the number of categories.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{outputs/runs/detect/yolov8n_noaug/results.png}
+\caption{Training curves, including loss and validation metrics.}
+\label{fig:training_curves}
+\end{figure}
+
+It can be seen from Figure~\ref{fig:training_curves} that \texttt{train/box\_loss}, \texttt{train/cls\_loss} and \texttt{train/dfl\_loss} are all steadily decreasing. It indicates that the model continuously learns better bbox localisation and class discrimination on the training set. Validation curves also dropped rapidly within the first 10 to 20 epochs, and then basically entered a plateau period. Among them, \texttt{val/box\_loss} and \texttt{val/cls\_loss} remain stable, while \texttt{val/dfl\_loss} slightly rebounds in the later stage, indicating that the model as a whole has converged, but the improvement of the bbox boundary refinement is limited. In the metrics section, precision quickly stabilized at a relatively high level, while recall and mAP gradually rose and then tended to stabilize. This indicates that continuing to train to 50 epochs mainly stabilizes the model rather than bringing about significant new improvements. This trend also explains the situation on the subsequent test set: The detection of player/referee is already available, but balls and a few edge categories are still greatly affected by the amount of data and scale.
+
+\subsection{Detection Post-processing and Foot-point Extraction}
+
+For each detected player, this project calculates the bottom-centre coordinate $(u, v)$ of the bounding box as the foot point/ground contact point. This step is the key interface from image space to basketball court plane.
+
+If the player bounding box is:
+
+\[
+(x_1, y_1, x_2, y_2)
+\]
+
+Then foot-point is defined as:
+
+\[
+u = \frac{x_1 + x_2}{2}, \qquad v = y_2
+\]
+
+This point approximately represents the contact position between the player's feet and the ground. The referee also uses the same bottom-centre strategy because the referee is also on the ground plane. ball uses bbox centre because the basketball might be in the air and the bottom-centre is not stable.
+
+The detection post-processing logic is summarised in Listing~\ref{lst:foot_point_extraction}.
+
+\begin{lstlisting}[style=pseudocode,caption={Detection and foot-point extraction.},label={lst:foot_point_extraction}]
+FOR each frame:
+    detections = YOLO.predict(frame)
+
+    FOR each detection in detections:
+        IF class == player:
+            x1, y1, x2, y2 = detection.xyxy
+            foot_u = (x1 + x2) / 2
+            foot_v = y2
+            SAVE player foot-point (foot_u, foot_v)
+
+        IF class == referee:
+            x1, y1, x2, y2 = detection.xyxy
+            foot_u = (x1 + x2) / 2
+            foot_v = y2
+            SAVE referee foot-point (foot_u, foot_v)
+
+        IF class == ball:
+            ball_u = (x1 + x2) / 2
+            ball_v = (y1 + y2) / 2
+            SAVE approximate ball point
+\end{lstlisting}
+
+\subsection{Tracking for Visualisation}
+
+In the final demo, lightweight tracking is used to maintain the temporal ID for the player/referee. The actual rendering adopts dual-path logic:
+
+\begin{enumerate}[leftmargin=1.8em]
+    \item \texttt{model.predict()} is responsible for detecting boxes on the main screen to prevent the tracker from filtering out valid detection boxes.
+    \item \texttt{model.track()} is responsible for the player/referee ID, mini-map points and short trajectories.
+    \item Through IoU matching, try to match the tracker ID back to the predict boxes as much as possible to make the ids of the main screen and the mini-map consistent.
+\end{enumerate}
+
+tracking turns the mini-map from a ``flickering point cloud'' into a readable temporal tactical map. The tracking component follows the common detection-association design used in multi-object tracking, and the ByteTrack paper is relevant because it associates almost every detection box rather than only high-confidence boxes \cite{zhang2022bytetrack}.
+
+\section{Manual Homography and Mini-map Projection}
+
+\subsection{Why Homography}
+
+The surface of a basketball court can be approximately regarded as a planar surface. For fixed or approximately fixed cameras, the relationship between any image point $\mathbf{p} = [u, v, 1]^T$ on the ground and the standard court BEV coordinate $\mathbf{P} = [x, y, 1]^T$ can be established through the $3 \times 3$ homography matrix $H$ \cite{hartley2004multiple,opencv2026homography}:
+
+\[
+\mathbf{P} \sim H\mathbf{p}
+\]
+
+Here $\sim$ represents scale equivalence under homogeneous coordinates. After actual projection, it needs to be divided by the third dimension:
+
+\[
+[x', y', w']^T = H[u, v, 1]^T,
+\qquad
+x = \frac{x'}{w'}, \quad y = \frac{y'}{w'}.
+\]
+
+\subsection{Manual Reference Points}
+
+The assignment requires emphasizing manual implementation. Therefore, in this project, \texttt{cv2.findHomography} is not directly called as the primary method. Instead, court landmarks are manually selected in the first frame of \texttt{Demo Video.mp4}. The four reference points actually used are from the visible line segments/intersections near the left and center lines of the court. These points are relatively clear in the video frame and are located in the same ground plane, which is suitable for establishing image-to-court correspondence. So the reference point must satisfy:
+
+\begin{itemize}[leftmargin=1.8em]
+    \item located in the ground plane, such as sideline/intersection/free-throw line/key corner;
+    \item Do not select non-ground points such as players, basketballs, baskets, billboards, etc;
+    \item At least 4 points, and they cannot be close to collinear;
+    \item The image order of the point must be consistent with the template court coordinate order.
+\end{itemize}
+
+The selected calibration points are shown in Figure~\ref{fig:manual_calibration_frame}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{outputs/calibration/demo_video_reference_points.jpg}
+\caption{Manual reference points for homography calibration.}
+\label{fig:manual_calibration_frame}
+\end{figure}
+
+\subsection{DLT/SVD Derivation}
+
+Suppose the image points are $(u, v)$, the target BEV point is $(x, y)$, and the homography is:
+
+\[
+H =
+\begin{bmatrix}
+h_1 & h_2 & h_3 \\
+h_4 & h_5 & h_6 \\
+h_7 & h_8 & h_9
+\end{bmatrix}.
+\]
+
+From $\mathbf{P} \sim H\mathbf{p}$, we can obtain:
+
+\[
+x = \frac{h_1u + h_2v + h_3}{h_7u + h_8v + h_9},
+\qquad
+y = \frac{h_4u + h_5v + h_6}{h_7u + h_8v + h_9}.
+\]
+
+After sorting, each pair of correspondence generates two linear constraints:
+
+\[
+[-u, -v, -1, 0, 0, 0, xu, xv, x]\mathbf{h} = 0,
+\]
+
+\[
+[0, 0, 0, -u, -v, -1, yu, yv, y]\mathbf{h} = 0.
+\]
+
+Multiple groups of points form a linear system:
+
+\[
+A\mathbf{h}=0.
+\]
+
+This project manually implements DLT (Direct Linear Transform) and uses SVD to solve the $\mathbf{h}$ corresponding to the minimum singular value. To improve numerical stability, in the implementation, normalisation is performed on source/target points first, and then reverse normalization is carried out to obtain the final $H$.
+
+The manual DLT/SVD procedure is summarised in Listing~\ref{lst:homography_dlt}.
+
+\begin{lstlisting}[style=pseudocode,caption={Manual homography estimation with DLT/SVD.},label={lst:homography_dlt}]
+INPUT:
+    image_points = [(u1, v1), ..., (un, vn)]
+    court_points = [(x1, y1), ..., (xn, yn)]
+
+NORMALISE image_points and court_points
+
+A = []
+FOR each pair ((u, v), (x, y)):
+    APPEND [-u, -v, -1, 0, 0, 0, x*u, x*v, x]
+    APPEND [0, 0, 0, -u, -v, -1, y*u, y*v, y]
+
+U, S, Vt = SVD(A)
+h = last row of Vt
+H_normalised = reshape(h, 3, 3)
+H = inverse(T_court) * H_normalised * T_image
+H = H / H[2, 2]
+\end{lstlisting}
+
+\subsection{Mini-map Rendering}
+
+The target template adopts the standard horizontal full-court layout with a physical scale of \texttt{28m x 15m}, and is then mapped to the mini-map pixel canvas. In actual operation, the BEV projection canvas is separated from the video overlay display size, and the homography output always falls on the fixed template coordinate system defined in \texttt{homography\_camera\_b.json}. The small map in the upper right corner is only resized before the final overlay. This can prevent the projection coordinate system from being changed due to the enlarged display size.
+
+In the final video, the mini-map shows:
+
+\begin{itemize}[leftmargin=1.8em]
+    \item player: enlarged blue circles with black external ID labels \texttt{P1}, \texttt{P2}, ...;
+    \item referee: enlarged yellow/orange circles with black external ID labels \texttt{R1}, \texttt{R2}, ...;
+    \item ball: red dot;
+    \item player/referee short trajectories: last 20 frames, rendered in gold for better contrast against the court template;
+    \item \texttt{others}: only shown on main frame, not projected to mini-map.
+\end{itemize}
+
+The video rendering pipeline is summarised in Listing~\ref{lst:video_rendering}.
+
+\begin{lstlisting}[style=pseudocode,caption={Video rendering with detection, tracking and BEV mini-map.},label={lst:video_rendering}]
+OPEN Demo Video.mp4
+OPEN output video writer
+
+FOR each frame:
+    predict_detections = YOLO.predict(frame)
+    track_detections = YOLO.track(frame)
+
+    DRAW all detection boxes on main frame
+
+    FOR each tracked player:
+        foot = bbox_bottom_centre(player_box)
+        bev_point = H * foot
+        UPDATE player_tracks[player_id]
+        DRAW P-id on mini-map
+
+    FOR each tracked referee:
+        foot = bbox_bottom_centre(referee_box)
+        bev_point = H * foot
+        UPDATE referee_tracks[referee_id]
+        DRAW R-id on mini-map
+
+    IF ball detected:
+        centre = bbox_centre(ball_box)
+        bev_ball = H * centre
+        DRAW red ball point
+    ELSE:
+        keep previous ball point for a few frames with fading
+
+    resize mini-map for display
+    overlay enlarged mini-map at top-right
+    write combined frame to output video
+\end{lstlisting}
+
+Figure~\ref{fig:minimap_overlay} gives an example frame with the final mini-map overlay.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{outputs/screenshots/frame_0050.jpg}
+\caption{Example mini-map overlay frame placeholder.}
+\label{fig:minimap_overlay}
+\end{figure}
+
+\section{Quantitative Evaluation}
+
+\subsection{Overall Metrics}
+
+Detector performance was evaluated using Precision, Recall, F1, mAP@0.5 and mAP@0.5:0.95. F1 uses the harmonic mean of precision and recall, which is calculated as:
+
+\[
+F1 = \frac{2PR}{P + R}.
+\]
+
+The overall quantitative results are reported in Table~\ref{tab:overall_metrics}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Split} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{mAP@0.5} & \textbf{mAP@0.5:0.95} \\
+\midrule
+Validation (\texttt{clip1} last 100) & 0.880 & 0.687 & 0.772 & 0.714 & 0.480 \\
+Test overall (\texttt{clip2+3+4}) & 0.672 & 0.393 & 0.496 & 0.405 & 0.219 \\
+\bottomrule
+\end{tabular}
+\caption{Overall detector metrics.}
+\label{tab:overall_metrics}
+\end{table}
+
+The Validation results are significantly higher than those of the test, indicating that the model has a good adaptation to \texttt{clip1} in the same scene, but the generalization decreases when crossing clips/cameras. This situation might be caused by the characteristics of the data itself. Different camera angles, player scales, sideline staff/background clutter, and occlusion patterns will all change the detection difficulty.
+
+\subsection{Per-class Test Metrics}
+
+Table~\ref{tab:per_class_metrics} breaks down the test performance by class.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{mAP@0.5:0.95} \\
+\midrule
+player & 0.765 & 0.821 & 0.792 & 0.429 \\
+ball & 1.000 & 0.003 & 0.006 & 0.009 \\
+referee & 0.722 & 0.657 & 0.688 & 0.409 \\
+others & 0.201 & 0.091 & 0.125 & 0.028 \\
+\bottomrule
+\end{tabular}
+\caption{Per-class test metrics.}
+\label{tab:per_class_metrics}
+\end{table}
+
+Among all types, player detection is the most stable, with test recall reaching 0.821, which is sufficient to support the subject visualization of BEV mini-map. The referee's quantitative indicators are okay, but slightly inferior. The precision of ball is high but the recall is extremely low, indicating that the model only outputs the basketball hoop when it is very certain. In most frames, the basketball is missed due to its small size, high speed, occlusion and motion blur.
+
+Figure~\ref{fig:confusion_matrix} visualises the class-level confusion on the overall test set.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\linewidth]{outputs/metrics/test_overall/confusion_matrix.png}
+\caption{Confusion matrix on overall test set.}
+\label{fig:confusion_matrix}
+\end{figure}
+
+\subsection{Per-clip Generalisation}
+
+Table~\ref{tab:per_clip_metrics} reports the per-clip generalisation performance.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+\textbf{Test Clip} & \textbf{Camera} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{mAP@0.5} & \textbf{mAP@0.5:0.95} \\
+\midrule
+clip2 & Camera B & 0.667 & 0.354 & 0.462 & 0.397 & 0.218 \\
+clip3 & Camera B & 0.665 & 0.456 & 0.541 & 0.428 & 0.204 \\
+clip4 & Camera A & 0.664 & 0.399 & 0.499 & 0.409 & 0.247 \\
+\bottomrule
+\end{tabular}
+\caption{Per-clip generalisation results.}
+\label{tab:per_clip_metrics}
+\end{table}
+
+clip2/clip3 is closer to the final demo perspective, and clip4 and training clip1 belong to the same Camera position A. In the results, the player has the highest mAP@0.5:0.95 in clip4, while the recall of clip3 is higher. This indicates that camera similarity is not the only factor, and the picture content, occlusion and player distribution can also affect performance.
+
+Figure~\ref{fig:test_prediction_example} shows an example prediction batch on the test set.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\linewidth]{outputs/metrics/test_overall/val_batch0_pred.jpg}
+\caption{Example prediction batch on the test set.}
+\label{fig:test_prediction_example}
+\end{figure}
+
+\section{Critical Analysis}
+
+\subsection{Occlusion and Scale Variation}
+
+In basketball games, players often gather under the basket or near the sideline, and bounding boxes overlap with each other. YOLOv8n still maintains a high recall on the player class, but missed detection or ID switch may occur in cases of severe occlusion. Due to the shooting Angle, the scale changes of the players are also obvious. The bbox of the foreground players is large and that of the distant players is small. Small distant players are more likely to be missed.
+
+\subsection{Ball Detection Difficulty}
+
+The ball is the most difficult category to identify. The ball recall in test overall was only 0.003, indicating that almost all basketball instances were missed. In my analysis, the reasons might include the following points:
+
+\begin{itemize}[leftmargin=1.8em]
+    \item Basketball has a very small pixel area in the image;
+    \item Fast passing and shooting generate motion blur;
+    \item The ball is often blocked by hands or the body;
+    \item The training set has only 400 frames, and the ball positive samples are relatively scarce.
+\end{itemize}
+
+Therefore, in the demo, ball uses short missing tolerance, that is, when undetected, it retains the position of the previous frame for several frames and gradually fades out. This is Visualization-level smoothing and does not represent actual tracking.
+
+\subsection{Projection Error from Jumping and Airborne Objects}
+
+Homography assumes that the points are located in the same ground plane. The player foot-point usually satisfies this approximation. However, when the player jumps up, lifts the foot, is blocked or the bottom of the bbox contains the area outside the shoe/non-foot area, the bottom-centre no longer strictly corresponds to the real foot point. It will cause mini-map projection drift. And the ball is more obvious. Because the basketball is often in the air, projecting onto the ground using the bbox centre is just an approximate visual cue.
+
+\subsection{Camera Motion and Manual Calibration}
+
+The method assumes that the camera is approximately fixed. If there is a slight pan/zoom/shake in \texttt{Demo Video.mp4}, like the image given by clip2, fixing the homography $H$ will cause a systematic offset. Subsequent improvements can be made and dynamic camera calibration can be carried out. For the actual broadcast system to be more stable, court line detection, frame-wise homography update or video stabilisation are required.
+
+\subsection{Sideline Staff Misclassification}
+
+The more obvious problem in the actual demo is that court-side staff, substitutes, photographers or sidelines staff are sometimes misjudged as players/referees. These people also have human silhouettes. Their clothing may also be close to the colors of the team or the referee, and they are often located near the boundary of the field in the broadcast view. Therefore, it is very easy for the detector to give player/referee predictions only based on local appearances. Due to the relatively small sample size and significant morphological differences of the \texttt{others} category, the model's recall and mAP for this category are both weak, resulting in some people on the sidelines who should have been classified as \texttt{others} or ignored being included in the main screen detection results.
+
+Moreover, this kind of misjudgment can also affect the minimap. If the bottom of the bbox of the misjudged target is projected into the interior of the basketball court plane, it may appear on the BEV map in the form of a player/referee point, forming noise. Subsequent improvement work can incorporate the court ROI/mask, retaining only the players/referees whose foot-points are located within the court area. Add the \texttt{others} labels for sidelines players and substitutes. Or use the temporal consistency filter for the player/referee to filter out tracks that appear briefly and have obviously unreasonable positions.
+
+\section{Conclusion}
+
+This project has completed a complete pipeline from broadcast video to BEV mini-map: YOLOv8n detector is responsible for multi-object detection, manual DLT/SVD homography is responsible for image-to-court mapping, and lightweight tracking is responsible for player/referee ID and short trajectories. Finally, superimpose detection results and enlarged mini-map in picture-in-picture form onto \texttt{Demo Video.mp4}.
+
+The experimental results show that the player and referee detections are sufficient to support the visualization of the mini-map, but the generalization performance of ball and others is relatively weak. The Homography method is clear and interpretable, but its main limitations come from the plane assumption, manual reference point errors, slight lens movement, projection errors caused by jumps, and the difficulty in detecting small target basketballs.
+
+Ultimately, the system presents a practical and interpretable 2D BEV tactical map. For the course requirements, it covers the complete process of video ingestion, detection, coordinate transformation, mini-map rendering and critical evaluation.
+
+\newpage
+\printbibliography
+
+\end{document}
